@@ -336,6 +336,7 @@ Router ini program Node.js kecil tanpa dependency. Ia hanya mendengarkan di `127
 | `claude` / `codex` | CosmosHub dulu (pindah model otomatis). Kalau CosmosHub tidak bisa dipakai, otomatis pakai subscription |
 | `claude-sub` / `codex-sub` | Selalu pakai subscription |
 | `cosmohub-status` | Kesehatan router dan log routing terbaru |
+| `C:\Projects\cosmohub-router\check.ps1` | Cek lengkap semua bagian (berguna setelah restart Windows) |
 
 Saat start akan muncul `[cosmohub] Using CosmosHub API (... models)`. Kalau saldo habis di tengah sesi, tool akan menampilkan pesan error. Ketik `/exit`, dan launcher akan melanjutkan percakapan yang sama di subscription (`claude --continue` / `codex resume --last`).
 
