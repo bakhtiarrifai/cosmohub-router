@@ -33,9 +33,15 @@ function Get-CosmoHubHealth {
     catch { return [pscustomobject]@{ usable = $false; reason = "router health check failed: $($_.Exception.Message)" } }
 }
 
+# Runs the tool on the subscription. For Codex, model_provider=openai overrides a config.toml that
+# points at the router (needed when the Codex VS Code extension should use CosmosHub too).
 function Invoke-CosmoHubReal($Tool, [object[]]$ToolArgs) {
     if ($Tool -eq 'claude') { & $CosmoHubClaude @ToolArgs }
-    else { & $CosmoHubNode $CosmoHubCodexJs @ToolArgs }
+    else { & $CosmoHubNode $CosmoHubCodexJs -c model_provider=openai @ToolArgs }
+}
+
+function Invoke-CosmoHubCodex([object[]]$ToolArgs) {
+    & $CosmoHubNode $CosmoHubCodexJs -p cosmohub @ToolArgs
 }
 
 function Invoke-CosmoHubTool($Tool, [object[]]$ToolArgs) {
@@ -66,7 +72,7 @@ function Invoke-CosmoHubTool($Tool, [object[]]$ToolArgs) {
     Write-Host "[cosmohub] Using CosmosHub API ($($h.models) models) via $CosmoHubUrl" -ForegroundColor Cyan
     try {
         if ($Tool -eq 'claude') { Invoke-CosmoHubReal claude $ToolArgs }
-        else { Invoke-CosmoHubReal codex (@('-p', 'cosmohub') + $ToolArgs) }
+        else { Invoke-CosmoHubCodex $ToolArgs }
     } finally {
         foreach ($n in $saved.Keys) { [Environment]::SetEnvironmentVariable($n, $saved[$n], 'Process') }
     }

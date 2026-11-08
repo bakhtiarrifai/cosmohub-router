@@ -4,5 +4,7 @@
 router-token
 exhausted.json
 node_modules/
+# built locally by wrapper\build.ps1
+bin/
 # Published separately as a claude.ai artifact
 panduan-cosmoshub.html

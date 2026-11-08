@@ -2,6 +2,8 @@
 
 Panduan memakai saldo **CosmosHub** (dibayar dalam Rupiah) untuk menjalankan **Claude Code**, **OpenAI Codex**, dan **GitHub Copilot Chat**. Cara ini **tidak butuh** subscription Claude Pro/Max atau ChatGPT Plus. Semua pemakaian dipotong dari saldo CosmosHub.
 
+> **Belum punya akun CosmosHub?** Daftar dan isi saldo lewat bot Telegram resminya memakai link referral ini: **https://t.me/CosmosStoreIDBot?start=ref_j86655**
+
 Repo ini juga berisi **router fallback opsional** (khusus Windows). Router ini otomatis pindah ke model lain saat sebuah model sedang maintenance, dan pindah ke subscription saat saldo habis. Lihat [bagian 8](#8-opsional-router-fallback-otomatis-windows).
 
 > Diuji pada 8 November 2026 dengan Claude Code 2.1.319, Codex CLI 0.167.0, dan VS Code 1.145.2 di Windows 11. Daftar model CosmosHub bisa berubah sewaktu-waktu.
@@ -17,19 +19,21 @@ Repo ini juga berisi **router fallback opsional** (khusus Windows). Router ini o
 | **Claude Code** (terminal) | ✅ Ya | [Bagian 1](#1-claude-code). Sudah diuji |
 | **Codex CLI** (terminal) | ✅ Ya | [Bagian 2](#2-codex-openai). Sudah diuji, tanpa login ChatGPT |
 | **GitHub Copilot Chat di VS Code** | ✅ Ya | [Bagian 3](#3-github-copilot-vs-code). Sudah diuji: chat dan agent mode |
-| **Aplikasi desktop GitHub Copilot** | ✅ Kemungkinan bisa | Mendukung "any OpenAI-compatible endpoint" lewat *Settings → Model Providers* (menurut GitHub). Belum diuji |
+| **Extension Claude Code & Codex di VS Code** | ✅ Ya | [Bagian 9](#9-opsional-extension-claude-code--codex-di-vs-code). Lewat router |
+| **Aplikasi desktop GitHub Copilot** | ✅ Kemungkinan bisa | [Bagian 10](#10-aplikasi-desktop-github-copilot--chatbox). Mendukung "any OpenAI-compatible endpoint" (menurut GitHub). Belum diuji penuh |
+| **Chatbox** (aplikasi chat mirip ChatGPT) | ✅ Ya | [Bagian 10](#10-aplikasi-desktop-github-copilot--chatbox) |
 | **Copilot di github.com** (web) | ❌ Tidak | Tidak ada pengaturan endpoint sendiri |
 | **claude.ai** (web) | ❌ Tidak | Hanya memakai model dan langganan Anthropic |
 | **Claude Desktop** | ⚠️ Tidak disarankan | Ada mode *Third-party inference*, tapi dirancang untuk **model Claude** lewat gateway dan menggantikan login biasa. CosmosHub saat ini tidak menyediakan model Claude |
 | **ChatGPT** (web & desktop) | ❌ Tidak | Hanya memakai model dan langganan OpenAI |
 
-Ingin antarmuka chat seperti ChatGPT tapi memakai saldo CosmosHub? Pakai aplikasi chat pihak ketiga yang mendukung *OpenAI-compatible API* (contoh: Chatbox, Cherry Studio, Open WebUI). Isi base URL `https://api.cosmoshub.tech/v1` dan API key Anda. Aplikasi-aplikasi ini belum diuji dalam panduan ini.
+Ingin antarmuka chat seperti ChatGPT tapi memakai saldo CosmosHub? Pakai aplikasi chat yang mendukung *OpenAI-compatible API*, misalnya Chatbox ([bagian 10](#10-aplikasi-desktop-github-copilot--chatbox)), Cherry Studio, atau Open WebUI.
 
 ---
 
 ## 0. Yang perlu disiapkan
 
-- **API key CosmosHub**. Ambil di dashboard CosmosHub, formatnya `sk-cos-...`.
+- **API key CosmosHub**. Ambil di dashboard CosmosHub, formatnya `sk-cos-...`. Belum punya akun? [Daftar di sini](https://t.me/CosmosStoreIDBot?start=ref_j86655).
 - **Node.js 22 atau lebih baru**, untuk Codex. Unduh di https://nodejs.org.
 - Terminal: PowerShell (Windows) atau Terminal (macOS/Linux).
 
@@ -293,6 +297,7 @@ curl -s https://api.cosmoshub.tech/v1/models -H "Authorization: Bearer $COSMOSHU
 - **Jangan bagikan API key** di chat, screenshot, atau repository Git. File `settings.json` Claude Code berisi key, jadi jangan di-commit.
 - Kalau key terlanjur bocor, **buat key baru** di dashboard CosmosHub dan hapus key yang lama.
 - Dukungan resmi: hubungi admin CosmosHub lewat Telegram (tautan ada di dashboard).
+- Isi saldo atau daftar akun baru: https://t.me/CosmosStoreIDBot?start=ref_j86655
 
 ---
 
@@ -309,21 +314,20 @@ Router ini program Node.js kecil tanpa dependency. Ia hanya mendengarkan di `127
 
 ### Pasang
 
-1. Simpan API key (bagian 2b), lalu install Node.js 22+, Claude Code, dan/atau Codex.
-2. Clone repo ini:
+1. Install Node.js 22+, Claude Code, dan/atau Codex.
+2. Clone repo ini, lalu jalankan installer-nya:
    ```powershell
    git clone https://github.com/bakhtiarrifai/cosmohub-router.git C:\Projects\cosmohub-router
+   powershell -ExecutionPolicy Bypass -File C:\Projects\cosmohub-router\install.ps1
    ```
-3. Pasang profil Codex:
-   ```powershell
-   New-Item -ItemType Directory -Force $HOME\.codex | Out-Null; Copy-Item C:\Projects\cosmohub-router\codex\cosmohub.config.toml $HOME\.codex\
-   ```
-4. Izinkan skrip lokal dan muat launcher di profil PowerShell:
-   ```powershell
-   Set-ExecutionPolicy -Scope CurrentUser RemoteSigned
-   New-Item -ItemType Directory -Force (Split-Path $PROFILE) | Out-Null; Add-Content $PROFILE ". 'C:\Projects\cosmohub-router\cosmohub.ps1'"
-   ```
-5. Buka **terminal baru**.
+   Installer ini akan:
+   - menanyakan API key kalau belum disimpan;
+   - mengizinkan skrip lokal untuk user Anda;
+   - memasang launcher di profil PowerShell;
+   - memasang profil Codex;
+   - mem-build wrapper VS Code;
+   - membuat router otomatis jalan saat login Windows.
+3. Buka **terminal baru**.
 
 ### Pakai
 
@@ -358,6 +362,71 @@ launcher (cosmohub.ps1) ── setelah tool ditutup: saldo habis? lanjutkan di s
 ```
 
 Login subscription **tidak pernah** dialirkan lewat router. Subscription hanya dipakai lewat aplikasi resminya, sesuai ketentuan Anthropic dan OpenAI.
+
+---
+
+## 9. Opsional: extension Claude Code & Codex di VS Code
+
+Butuh router dari [bagian 8](#8-opsional-router-fallback-otomatis-windows) (jalankan `install.ps1` dulu).
+
+### Extension Claude Code
+
+`install.ps1` mem-build `bin\claude-hub.exe`, yaitu wrapper yang dipakai extension untuk menjalankan Claude. Wrapper ini memakai CosmosHub kalau router bisa dipakai, dan kembali ke subscription kalau tidak. Kalau router belum jalan, wrapper akan menyalakannya. Tambahkan ke `settings.json` VS Code:
+
+```json
+"claudeCode.claudeProcessWrapper": "C:\\Projects\\cosmohub-router\\bin\\claude-hub.exe"
+```
+
+Restart VS Code. Setiap keputusan wrapper (CosmosHub atau subscription) dicatat di `~/.cosmohub/wrapper.log`. Untuk sementara memakai subscription saja, hapus baris di atas dari `settings.json`.
+
+### Extension Codex
+
+Extension Codex selalu membaca `~/.codex/config.toml` utama. Tambahkan bagian ini di **paling atas** file tersebut:
+
+```toml
+model_provider = "cosmohub"
+
+[model_providers.cosmohub]
+name = "CosmosHub (local router)"
+base_url = "http://127.0.0.1:4141/v1"
+env_key = "COSMOHUB_ROUTER_TOKEN"
+wire_api = "responses"
+```
+
+Restart VS Code. Dengan pengaturan ini, perintah `codex` di terminal juga lewat CosmosHub, sedangkan `codex-sub` tetap memakai subscription ChatGPT (`-c model_provider=openai`). Extension Codex **tidak** otomatis pindah ke subscription saat saldo habis. Kalau itu terjadi, hapus bagian di atas dari `config.toml`.
+
+---
+
+## 10. Aplikasi desktop GitHub Copilot & Chatbox
+
+Keduanya bisa diinstall lewat winget dan dihubungkan **langsung** ke CosmosHub, tanpa router:
+
+```powershell
+winget install --id GitHub.CopilotApp -e
+winget install --id Bin-Huang.Chatbox -e
+```
+
+### Aplikasi desktop GitHub Copilot
+
+1. Buka aplikasi GitHub Copilot dan login dengan akun GitHub.
+2. Buka **Settings → Model Providers**, lalu tambahkan provider **OpenAI-compatible**.
+3. Isi endpoint `https://api.cosmoshub.tech/v1` dan API key CosmosHub Anda.
+4. Saat memulai sesi, pilih model CosmosHub di model picker, misalnya `gpt-6.1-sol`.
+
+Akun Copilot Business/Enterprise: admin harus mengaktifkan policy *Enable custom models (BYOK)*.
+
+### Chatbox
+
+1. Buka Chatbox, lalu masuk ke **Settings → Model Provider**. Tambahkan provider baru bertipe **OpenAI API Compatible**.
+2. Isi:
+   - Name: `CosmosHub`
+   - API Host: `https://api.cosmoshub.tech`
+   - API Path: `/v1/chat/completions`
+   - API Key: key CosmosHub Anda
+3. Klik **Fetch** untuk mengambil daftar model, atau tambahkan manual: `gpt-6.1-sol`, `kimi-k3.1-pro`, `deepseek-v4-flash`, dan seterusnya.
+4. Pilih model CosmosHub di percakapan baru.
+
+Nama menu bisa sedikit berbeda antar versi aplikasi.
 
 ---
 

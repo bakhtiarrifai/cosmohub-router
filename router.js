@@ -188,7 +188,15 @@ async function probeBalance() {
   }
 }
 
+// The VS Code extension starts Claude several times per session (auth status, sessions), so live
+// checks are cached briefly instead of hitting CosmosHub on every launch.
+const LIVE_CACHE_MS = 60_000;
+let lastLive = null;
+
 async function health(res, live) {
+  if (live && lastLive && Date.now() - lastLive.at < LIVE_CACHE_MS && !(lastLive.out.usable && readExhausted())) {
+    return sendJson(res, 200, { ...lastLive.out, cached: true });
+  }
   const out = { ok: true, port: PORT, models: available ? available.size : null, lastRefresh, usable: true, reason: "ok" };
   if (live) {
     const m = await refreshModels();
@@ -204,6 +212,7 @@ async function health(res, live) {
   }
   out.exhaustedAt = readExhausted()?.at ?? null;
   out.models = available ? available.size : null;
+  if (live) lastLive = { at: Date.now(), out };
   sendJson(res, 200, out);
 }
 
