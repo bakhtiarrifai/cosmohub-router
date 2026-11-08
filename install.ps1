@@ -28,7 +28,10 @@ $env:COSMOSHUB_API_KEY = [Environment]::GetEnvironmentVariable('COSMOSHUB_API_KE
 $policy = Get-ExecutionPolicy -Scope CurrentUser
 if ($policy -in @('Undefined', 'Restricted', 'AllSigned')) {
     Step 'Allowing local scripts for your user (RemoteSigned)'
-    Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force
+    # When this script runs with -ExecutionPolicy Bypass, PowerShell applies the change but still raises
+    # "overridden by a policy defined at a more specific scope". That is expected, so don't stop on it.
+    try { Set-ExecutionPolicy -Scope CurrentUser RemoteSigned -Force -ErrorAction Stop }
+    catch { if ((Get-ExecutionPolicy -Scope CurrentUser) -ne 'RemoteSigned') { throw } }
 }
 
 # 3. PowerShell profile
