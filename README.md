@@ -435,11 +435,11 @@ Akun Copilot Business/Enterprise: admin harus mengaktifkan policy *Enable custom
 
 ### Chatbox
 
-1. Buka Chatbox, lalu masuk ke **Settings → Model Provider**. Tambahkan provider baru bertipe **OpenAI API Compatible**.
+1. Buka Chatbox. Kalau di layar pembuka diminta lisensi, pilih opsi untuk memakai **API key sendiri**. Lisensi hanya untuk layanan berbayar "Chatbox AI". Lalu masuk ke **Settings → Model Provider**. Tambahkan provider baru bertipe **OpenAI API Compatible**.
 2. Isi:
    - Name: `CosmosHub`
-   - API Host: `https://api.cosmoshub.tech`
-   - API Path: `/v1/chat/completions`
+   - API Host: `https://api.cosmoshub.tech/v1` (dengan `/v1`, supaya tombol **Fetch** bisa mengambil daftar model dari `/v1/models`)
+   - API Path: `/chat/completions`
    - API Key: key CosmosHub Anda
 3. Klik **Fetch** untuk mengambil daftar model, atau tambahkan manual: `gpt-6.1-sol`, `kimi-k3.1-pro`, `deepseek-v4-flash`, dan seterusnya.
 4. Pilih model CosmosHub di percakapan baru.
