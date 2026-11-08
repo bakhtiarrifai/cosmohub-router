@@ -1,0 +1,11 @@
+# Layered on top of ~/.codex/config.toml by `codex -p cosmohub` (the cosmohub launcher does this).
+# Copy this file to ~/.codex/cosmohub.config.toml.
+# Sends Codex through the local CosmosHub router, which falls back across models.
+model = "gpt-6.1-sol"
+model_provider = "cosmohub"
+
+[model_providers.cosmohub]
+name = "CosmosHub (local router)"
+base_url = "http://127.0.0.1:4141/v1"
+env_key = "COSMOHUB_ROUTER_TOKEN"
+wire_api = "responses"
