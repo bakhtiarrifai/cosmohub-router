@@ -78,4 +78,4 @@ $h = Invoke-RestMethod 'http://127.0.0.1:4141/health?live=1' -TimeoutSec 45
 Write-Host ''
 Write-Host "Done. CosmosHub usable: $($h.usable) ($($h.models) models)" -ForegroundColor Green
 Write-Host 'Open a NEW terminal, then use: claude, codex, claude-sub, codex-sub, cosmohub-status'
-Write-Host 'VS Code extensions: see README section 9.'
+Write-Host 'VS Code extensions: see README section 8.'

@@ -4,7 +4,7 @@ Panduan memakai saldo **CosmosHub** (dibayar dalam Rupiah) untuk menjalankan **C
 
 > **Belum punya akun CosmosHub?** Daftar dan isi saldo lewat bot Telegram resminya memakai link referral ini: **https://t.me/CosmosStoreIDBot?start=ref_j86655**
 
-Repo ini juga berisi **router fallback opsional** (khusus Windows). Router ini otomatis pindah ke model lain saat sebuah model sedang maintenance, dan pindah ke subscription saat saldo habis. Lihat [bagian 8](#8-opsional-router-fallback-otomatis-windows).
+Repo ini juga berisi **router fallback opsional** (khusus Windows). Router ini otomatis pindah ke model lain saat sebuah model sedang maintenance, dan pindah ke subscription saat saldo habis. Lihat [bagian 7](#7-opsional-router-fallback-otomatis-windows).
 
 > Diuji pada 8 November 2026 dengan Claude Code 2.1.319, Codex CLI 0.167.0, dan VS Code 1.145.2 di Windows 11. Router, autostart, serta extension Claude Code dan Codex di VS Code juga diuji ulang setelah Windows di-restart. Daftar model CosmosHub bisa berubah sewaktu-waktu.
 >
@@ -19,15 +19,15 @@ Repo ini juga berisi **router fallback opsional** (khusus Windows). Router ini o
 | **Claude Code** (terminal) | ✅ Ya | [Bagian 1](#1-claude-code). Sudah diuji |
 | **Codex CLI** (terminal) | ✅ Ya | [Bagian 2](#2-codex-openai). Sudah diuji, tanpa login ChatGPT |
 | **GitHub Copilot Chat di VS Code** | ✅ Ya | [Bagian 3](#3-github-copilot-vs-code). Sudah diuji: chat dan agent mode |
-| **Extension Claude Code & Codex di VS Code** | ✅ Ya | [Bagian 9](#9-opsional-extension-claude-code--codex-di-vs-code). Lewat router. Keduanya sudah diuji |
-| **Aplikasi desktop GitHub Copilot** | ✅ Kemungkinan bisa | [Bagian 10](#10-aplikasi-desktop-github-copilot--chatbox). Mendukung "any OpenAI-compatible endpoint" (menurut GitHub). Belum diuji penuh |
-| **Chatbox** (aplikasi chat mirip ChatGPT) | ✅ Ya | [Bagian 10](#10-aplikasi-desktop-github-copilot--chatbox) |
+| **Extension Claude Code & Codex di VS Code** | ✅ Ya | [Bagian 8](#8-opsional-extension-claude-code--codex-di-vs-code). Lewat router. Keduanya sudah diuji |
+| **Aplikasi desktop GitHub Copilot** | ✅ Ya | [Bagian 9](#9-aplikasi-desktop-github-copilot--chatbox). Sudah diuji. Endpoint wajib diakhiri `/v1` |
+| **Chatbox** (aplikasi chat mirip ChatGPT) | ✅ Ya | [Bagian 9](#9-aplikasi-desktop-github-copilot--chatbox) |
 | **Copilot di github.com** (web) | ❌ Tidak | Tidak ada pengaturan endpoint sendiri |
 | **claude.ai** (web) | ❌ Tidak | Hanya memakai model dan langganan Anthropic |
 | **Claude Desktop** | ⚠️ Tidak disarankan | Ada mode *Third-party inference*, tapi dirancang untuk **model Claude** lewat gateway dan menggantikan login biasa. CosmosHub saat ini tidak menyediakan model Claude |
 | **ChatGPT** (web & desktop) | ❌ Tidak | Hanya memakai model dan langganan OpenAI |
 
-Ingin antarmuka chat seperti ChatGPT tapi memakai saldo CosmosHub? Pakai aplikasi chat yang mendukung *OpenAI-compatible API*, misalnya Chatbox ([bagian 10](#10-aplikasi-desktop-github-copilot--chatbox)), Cherry Studio, atau Open WebUI.
+Ingin antarmuka chat seperti ChatGPT tapi memakai saldo CosmosHub? Pakai aplikasi chat yang mendukung *OpenAI-compatible API*, misalnya Chatbox ([bagian 9](#9-aplikasi-desktop-github-copilot--chatbox)), Cherry Studio, atau Open WebUI.
 
 ---
 
@@ -94,7 +94,7 @@ Ketik `/status` di dalam Claude Code. Bagian base URL harus menunjukkan `https:/
 
 **Peringatan yang normal (abaikan saja):**
 - *"Claude Code doesn't recognize the model ..."*: muncul karena nama model bukan model Claude. Claude Code menganggap konteksnya 200k token.
-- *"claude.ai connectors are disabled ..."*: connector claude.ai (Gmail, Drive, dan lainnya) memang tidak aktif saat memakai API key pihak lain. Gantinya, lihat [bagian 4](#4-membuat-ppt-word-excel-pdf--menambah-mcp).
+- *"claude.ai connectors are disabled ..."*: connector claude.ai (Gmail, Drive, dan lainnya) memang tidak aktif saat memakai API key pihak lain.
 
 ### 1d. Ganti model
 
@@ -207,53 +207,7 @@ Tambahkan baris ini ke `settings.json` VS Code. Judul chat dan commit message ot
 
 ---
 
-## 4. Membuat PPT, Word, Excel, PDF & menambah MCP
-
-Tools dan MCP berjalan **di komputer Anda**, jadi tetap berfungsi dengan model CosmosHub, asalkan modelnya mendukung *tool calling* (GPT, Kimi, DeepSeek, GLM, dan Qwen di CosmosHub mendukung).
-
-### 4a. Claude Code: skill dokumen resmi Anthropic
-
-Ketik di dalam Claude Code:
-```
-/plugin marketplace add anthropics/skills
-/plugin install document-skills@anthropic-agent-skills
-```
-
-Setelah terpasang, cukup minta, misalnya: *"Buat presentasi 8 slide tentang strategi pemasaran Q1, simpan sebagai pemasaran.pptx"*. Skill ini menjalankan script, jadi **pastikan Python 3 terpasang** (https://python.org).
-
-### 4b. Codex: memakai skill yang sama
-
-```bash
-git clone https://github.com/anthropics/skills.git ~/skills-anthropic
-```
-
-Lalu minta Codex, misalnya: *"Baca ~/skills-anthropic/skills/pptx/SKILL.md lalu buat presentasi 8 slide tentang ..."*
-
-### 4c. Menambah MCP server
-
-| | Claude Code | Codex |
-|---|---|---|
-| Tambah | `claude mcp add --scope user <nama> -- <perintah>` | `codex mcp add <nama> -- <perintah>` |
-| Lihat daftar | `claude mcp list` | `codex mcp list` |
-
-Contoh MCP yang umum dipakai:
-```bash
-# Mengendalikan browser (buka web, isi form, screenshot)
-claude mcp add --scope user playwright -- npx @playwright/mcp@latest
-codex  mcp add playwright -- npx @playwright/mcp@latest
-
-# Dokumentasi library yang selalu terbaru
-claude mcp add --scope user context7 -- npx -y @upstash/context7-mcp
-codex  mcp add context7 -- npx -y @upstash/context7-mcp
-```
-
-Di VS Code Copilot, MCP ditambahkan lewat Command Palette: **MCP: Add Server**.
-
-> Pasang MCP hanya dari sumber yang Anda percaya. MCP server bisa menjalankan perintah di komputer Anda.
-
----
-
-## 5. Model yang tersedia (per 8 November 2026)
+## 4. Model yang tersedia (per 8 November 2026)
 
 Cek daftar terbaru kapan saja:
 
@@ -276,7 +230,7 @@ curl -s https://api.cosmoshub.tech/v1/models -H "Authorization: Bearer $COSMOSHU
 
 ---
 
-## 6. Kalau ada masalah
+## 5. Kalau ada masalah
 
 | Gejala | Artinya | Solusi |
 |---|---|---|
@@ -293,7 +247,7 @@ curl -s https://api.cosmoshub.tech/v1/models -H "Authorization: Bearer $COSMOSHU
 
 ---
 
-## 7. Biaya dan keamanan
+## 6. Biaya dan keamanan
 
 - **Ada biaya tersembunyi:** CosmosHub menambahkan sekitar **2.000 token** instruksi tersembunyi ke setiap request. Pertanyaan singkat pun tetap dihitung sekitar 2.000 token input. Pantau saldo di dashboard.
 - **Jangan bagikan API key** di chat, screenshot, atau repository Git. File `settings.json` Claude Code berisi key, jadi jangan di-commit.
@@ -303,7 +257,7 @@ curl -s https://api.cosmoshub.tech/v1/models -H "Authorization: Bearer $COSMOSHU
 
 ---
 
-## 8. Opsional: router fallback otomatis (Windows)
+## 7. Opsional: router fallback otomatis (Windows)
 
 Untuk yang ingin:
 - CosmosHub **otomatis pindah model** saat model yang diminta sedang maintenance, misalnya `gpt-6.1-sol` lalu `gpt-6-sol`, lalu `kimi-k3.1-pro`, dan seterusnya.
@@ -370,9 +324,9 @@ Login subscription **tidak pernah** dialirkan lewat router. Subscription hanya d
 
 ---
 
-## 9. Opsional: extension Claude Code & Codex di VS Code
+## 8. Opsional: extension Claude Code & Codex di VS Code
 
-Butuh router dari [bagian 8](#8-opsional-router-fallback-otomatis-windows) (jalankan `install.ps1` dulu).
+Butuh router dari [bagian 7](#7-opsional-router-fallback-otomatis-windows) (jalankan `install.ps1` dulu).
 
 ### Extension Claude Code
 
@@ -415,7 +369,7 @@ Kirim satu pesan di panel extension, lalu cek:
 
 ---
 
-## 10. Aplikasi desktop GitHub Copilot & Chatbox
+## 9. Aplikasi desktop GitHub Copilot & Chatbox
 
 Keduanya bisa diinstall lewat winget dan dihubungkan **langsung** ke CosmosHub, tanpa router:
 
@@ -428,7 +382,7 @@ winget install --id Bin-Huang.Chatbox -e
 
 1. Buka aplikasi GitHub Copilot dan login dengan akun GitHub.
 2. Buka **Settings → Model Providers**, lalu tambahkan provider **OpenAI-compatible**.
-3. Isi endpoint `https://api.cosmoshub.tech/v1` dan API key CosmosHub Anda.
+3. Isi endpoint **`https://api.cosmoshub.tech/v1`** dan API key CosmosHub Anda. Bagian **`/v1` wajib ada**. Tanpa itu, aplikasi tidak bisa terhubung ke model CosmosHub.
 4. Saat memulai sesi, pilih model CosmosHub di model picker, misalnya `gpt-6.1-sol`.
 
 Akun Copilot Business/Enterprise: admin harus mengaktifkan policy *Enable custom models (BYOK)*.

@@ -37,4 +37,4 @@ if (Test-Path $wlog) { Write-Host "`n  Last VS Code Claude launch: $((Get-Conten
 
 Write-Host ''
 if ($fail -eq 0) { Write-Host 'All good.' -ForegroundColor Green }
-else { Write-Host "$fail check(s) failed. Re-run install.ps1, or see README section 6 and 8." -ForegroundColor Yellow }
+else { Write-Host "$fail check(s) failed. Re-run install.ps1, or see README section 5 and 7." -ForegroundColor Yellow }
