@@ -6,7 +6,7 @@ Panduan memakai saldo **CosmosHub** (dibayar dalam Rupiah) untuk menjalankan **C
 
 Repo ini juga berisi **router fallback opsional** (khusus Windows). Router ini otomatis pindah ke model lain saat sebuah model sedang maintenance, dan pindah ke subscription saat saldo habis. Lihat [bagian 8](#8-opsional-router-fallback-otomatis-windows).
 
-> Diuji pada 8 November 2026 dengan Claude Code 2.1.319, Codex CLI 0.167.0, dan VS Code 1.145.2 di Windows 11. Daftar model CosmosHub bisa berubah sewaktu-waktu.
+> Diuji pada 8 November 2026 dengan Claude Code 2.1.319, Codex CLI 0.167.0, dan VS Code 1.145.2 di Windows 11. Router, autostart, serta extension Claude Code dan Codex di VS Code juga diuji ulang setelah Windows di-restart. Daftar model CosmosHub bisa berubah sewaktu-waktu.
 >
 > Ini panduan komunitas, bukan dokumentasi resmi CosmosHub, Anthropic, OpenAI, atau GitHub.
 
@@ -19,7 +19,7 @@ Repo ini juga berisi **router fallback opsional** (khusus Windows). Router ini o
 | **Claude Code** (terminal) | ✅ Ya | [Bagian 1](#1-claude-code). Sudah diuji |
 | **Codex CLI** (terminal) | ✅ Ya | [Bagian 2](#2-codex-openai). Sudah diuji, tanpa login ChatGPT |
 | **GitHub Copilot Chat di VS Code** | ✅ Ya | [Bagian 3](#3-github-copilot-vs-code). Sudah diuji: chat dan agent mode |
-| **Extension Claude Code & Codex di VS Code** | ✅ Ya | [Bagian 9](#9-opsional-extension-claude-code--codex-di-vs-code). Lewat router |
+| **Extension Claude Code & Codex di VS Code** | ✅ Ya | [Bagian 9](#9-opsional-extension-claude-code--codex-di-vs-code). Lewat router. Keduanya sudah diuji |
 | **Aplikasi desktop GitHub Copilot** | ✅ Kemungkinan bisa | [Bagian 10](#10-aplikasi-desktop-github-copilot--chatbox). Mendukung "any OpenAI-compatible endpoint" (menurut GitHub). Belum diuji penuh |
 | **Chatbox** (aplikasi chat mirip ChatGPT) | ✅ Ya | [Bagian 10](#10-aplikasi-desktop-github-copilot--chatbox) |
 | **Copilot di github.com** (web) | ❌ Tidak | Tidak ada pengaturan endpoint sendiri |
@@ -288,6 +288,8 @@ curl -s https://api.cosmoshub.tech/v1/models -H "Authorization: Bearer $COSMOSHU
 | Codex: "Missing environment variable COSMOSHUB_API_KEY" | Terminal dibuka sebelum key disimpan | Tutup lalu buka terminal baru |
 | VS Code: AI di chat balik bertanya "What would you like to do with language models?" | Perintah terketik di kotak chat | Tutup kotak itu, lalu pakai `Ctrl+Shift+P` |
 | VS Code: model tidak muncul | Daftar model belum terbaca | Restart VS Code |
+| Extension Claude Code masih memakai subscription | Wrapper memutuskan CosmosHub tidak bisa dipakai, atau setting belum terbaca | Baca alasannya di `~/.cosmohub/wrapper.log`, jalankan `check.ps1`, lalu restart VS Code |
+| Extension Codex: "connection refused" / tidak bisa terhubung | Router tidak jalan (extension Codex tidak bisa menyalakannya sendiri) | Jalankan `check.ps1`. Kalau "Router process" gagal, jalankan ulang `install.ps1` atau ketik `cosmohub-status` di terminal |
 
 ---
 
@@ -327,7 +329,9 @@ Router ini program Node.js kecil tanpa dependency. Ia hanya mendengarkan di `127
    - memasang profil Codex;
    - mem-build wrapper VS Code;
    - membuat router otomatis jalan saat login Windows.
-3. Buka **terminal baru**.
+3. Buka **terminal baru**, lalu jalankan `C:\Projects\cosmohub-router\check.ps1`. Kalau semuanya `[OK]`, akan muncul **All good.** Jalankan lagi setelah restart Windows berikutnya. Baris "Router process" harus menunjukkan waktu Anda login, sebagai bukti router menyala otomatis.
+
+> Kalau muncul *"running scripts is disabled on this system"*, berarti Anda memanggil `install.ps1` langsung. Pakai perintah lengkap di atas (dengan `-ExecutionPolicy Bypass`).
 
 ### Pakai
 
@@ -395,6 +399,19 @@ wire_api = "responses"
 ```
 
 Restart VS Code. Dengan pengaturan ini, perintah `codex` di terminal juga lewat CosmosHub, sedangkan `codex-sub` tetap memakai subscription ChatGPT (`-c model_provider=openai`). Extension Codex **tidak** otomatis pindah ke subscription saat saldo habis. Kalau itu terjadi, hapus bagian di atas dari `config.toml`.
+
+Extension Codex membawa engine Codex-nya sendiri, yang versinya bisa berbeda dari Codex CLI. Keduanya membaca `config.toml` yang sama. Untuk tugas kecil seperti membuat judul, extension memakai model ringan (misalnya `gpt-6-luna`). Model itu juga tersedia di CosmosHub, jadi ikut lewat router.
+
+### Cara mengecek bahwa extension memakai CosmosHub
+
+Kirim satu pesan di panel extension, lalu cek:
+
+| Extension | Yang dicek | Tanda berhasil |
+|---|---|---|
+| Claude Code | `check.ps1`, baris "Last VS Code Claude launch" (atau `~/.cosmohub/wrapper.log`) | Diawali `cosmoshub ::` |
+| Claude Code | `~/.cosmohub/router.log` | Ada baris `/v1/messages hub-opus -> ... 200` |
+| Codex | `~/.cosmohub/router.log` | Ada baris `/v1/responses ... 200` |
+| Codex | Baris pertama file sesi terbaru di `~/.codex/sessions/` | Berisi `"originator":"codex_vscode"` dan `"model_provider":"cosmohub"` |
 
 ---
 
