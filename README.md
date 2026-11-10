@@ -60,6 +60,16 @@ macOS / Linux:
 curl -fsSL https://claude.ai/install.sh | bash
 ```
 
+**Windows: tambahkan Claude Code ke PATH.** Installer memasang `claude.exe` di `%USERPROFILE%\.local\bin`, tapi folder itu sering belum masuk PATH. Akibatnya PowerShell menampilkan *"claude : The term 'claude' is not recognized as the name of a cmdlet..."*. Jalankan sekali di PowerShell biasa (bukan admin):
+
+```powershell
+$bin = "$env:USERPROFILE\.local\bin"
+$p = [Environment]::GetEnvironmentVariable('Path', 'User')
+if (($p -split ';') -notcontains $bin) { [Environment]::SetEnvironmentVariable('Path', ($p.TrimEnd(';') + ";$bin").TrimStart(';'), 'User') }
+```
+
+Tutup **semua** jendela PowerShell/terminal (termasuk terminal di VS Code), buka yang baru, lalu cek dengan `claude --version`. Cara manual: tekan Start, ketik *Edit environment variables for your account*, pilih **Path** → **Edit** → **New**, isi `%USERPROFILE%\.local\bin`, lalu OK. `install.ps1` di [bagian 7](#7-opsional-router-fallback-otomatis-windows) juga melakukan langkah ini otomatis.
+
 ### 1b. Isi `settings.json`
 
 Buka (atau buat) file ini:
@@ -239,6 +249,7 @@ curl -s https://api.cosmoshub.tech/v1/models -H "Authorization: Bearer $COSMOSHU
 | `404` "Unknown endpoint: /v1/messages/count_tokens" | CosmosHub tidak menyediakan penghitung token | Normal, abaikan |
 | Error saldo, kredit, atau quota | Saldo habis | Top-up di dashboard CosmosHub |
 | Claude Code masih minta login | Onboarding belum dilewati | Pastikan ada `"hasCompletedOnboarding": true` di `settings.json` atau `~/.claude.json` |
+| Windows: "The term 'claude' is not recognized as the name of a cmdlet..." | Folder `%USERPROFILE%\.local\bin` (tempat `claude.exe`) belum ada di PATH | Jalankan perintah PATH di [bagian 1a](#1a-install), lalu buka terminal **baru**. Cek dengan `claude --version` |
 | Codex: "Missing environment variable COSMOSHUB_API_KEY" | Terminal dibuka sebelum key disimpan | Tutup lalu buka terminal baru |
 | VS Code: AI di chat balik bertanya "What would you like to do with language models?" | Perintah terketik di kotak chat | Tutup kotak itu, lalu pakai `Ctrl+Shift+P` |
 | VS Code: model tidak muncul | Daftar model belum terbaca | Restart VS Code |

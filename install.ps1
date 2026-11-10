@@ -7,6 +7,7 @@
 #   4. copies the Codex profile to ~/.codex/cosmohub.config.toml
 #   5. builds bin\claude-hub.exe (wrapper for the Claude Code VS Code extension)
 #   6. starts the router at logon (Startup folder) and now, and stores its local token as COSMOHUB_ROUTER_TOKEN
+#   7. adds %USERPROFILE%\.local\bin (where the Claude Code installer puts claude.exe) to your user PATH
 $ErrorActionPreference = 'Stop'
 $root = $PSScriptRoot
 $node = Join-Path $env:ProgramFiles 'nodejs\node.exe'
@@ -73,6 +74,18 @@ if (-not $up) { throw 'The router did not start. Run: node router.js   to see th
 $token = (Get-Content (Join-Path $HOME '.cosmohub\router-token') -Raw).Trim()
 [Environment]::SetEnvironmentVariable('COSMOHUB_ROUTER_TOKEN', $token, 'User')
 Step 'Router running; COSMOHUB_ROUTER_TOKEN stored for Codex'
+
+# 7. Claude Code on PATH. The official installer puts claude.exe in ~\.local\bin but does not always add it to
+# PATH, which gives "The term 'claude' is not recognized" in a fresh PowerShell (e.g. claude-sub, or no profile).
+$claudeBin = Join-Path $HOME '.local\bin'
+$userPath = [Environment]::GetEnvironmentVariable('Path', 'User')
+if (($userPath -split ';') -notcontains $claudeBin) {
+    Step "Adding $claudeBin to your user PATH"
+    [Environment]::SetEnvironmentVariable('Path', ("$userPath".TrimEnd(';') + ";$claudeBin").TrimStart(';'), 'User')
+}
+if (-not (Test-Path (Join-Path $claudeBin 'claude.exe'))) {
+    Write-Host "Claude Code not found in $claudeBin. Install it with: irm https://claude.ai/install.ps1 | iex" -ForegroundColor Yellow
+}
 
 $h = Invoke-RestMethod 'http://127.0.0.1:4141/health?live=1' -TimeoutSec 45
 Write-Host ''

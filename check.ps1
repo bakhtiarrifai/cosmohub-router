@@ -25,6 +25,10 @@ try { $h = Invoke-RestMethod 'http://127.0.0.1:4141/health?live=1' -TimeoutSec 4
 if ($h) { Row ([bool]$h.usable) 'CosmosHub reachable' "$($h.reason), $($h.models) models" }
 else { Row $false 'CosmosHub reachable' 'router did not answer on 127.0.0.1:4141' }
 
+$claudeBin = Join-Path $HOME '.local\bin'
+Row (Test-Path (Join-Path $claudeBin 'claude.exe')) 'Claude Code installed' (Join-Path $claudeBin 'claude.exe')
+Row ((([Environment]::GetEnvironmentVariable('Path', 'User')) -split ';') -contains $claudeBin) 'Claude Code on user PATH' $claudeBin
+
 $prof = (Test-Path $PROFILE) -and (Select-String -Path $PROFILE -SimpleMatch 'cosmohub.ps1' -Quiet)
 Row $prof 'PowerShell launcher in profile' $PROFILE
 Row ([bool](Get-Command claude-sub -ErrorAction SilentlyContinue)) 'claude/codex launcher loaded' 'in this PowerShell window'
@@ -37,4 +41,4 @@ if (Test-Path $wlog) { Write-Host "`n  Last VS Code Claude launch: $((Get-Conten
 
 Write-Host ''
 if ($fail -eq 0) { Write-Host 'All good.' -ForegroundColor Green }
-else { Write-Host "$fail check(s) failed. Re-run install.ps1, or see README section 5 and 7." -ForegroundColor Yellow }
+else { Write-Host "$fail check(s) failed. Re-run install.ps1, or see README section 1a, 5 and 7." -ForegroundColor Yellow }
