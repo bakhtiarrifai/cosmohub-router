@@ -2,9 +2,11 @@
 
 Panduan memakai saldo **CosmosHub** (dibayar dalam Rupiah) untuk menjalankan **Claude Code**, **OpenAI Codex**, dan **GitHub Copilot Chat**. Cara ini **tidak butuh** subscription Claude Pro/Max atau ChatGPT Plus. Semua pemakaian dipotong dari saldo CosmosHub.
 
-> **Belum punya akun CosmosHub?** Daftar dan isi saldo lewat bot Telegram resminya memakai link referral ini: **https://t.me/CosmosStoreIDBot?start=ref_j86655**
+> **Belum punya akun CosmosHub?** Daftar/login di **https://cosmosin.io**, lalu isi saldo melalui platform tersebut.
 
 Repo ini juga berisi **router fallback opsional** (khusus Windows). Router ini otomatis pindah ke model lain saat sebuah model sedang maintenance, dan pindah ke subscription saat saldo habis. Lihat [bagian 7](#7-opsional-router-fallback-otomatis-windows).
+
+> **Migrasi API:** Base URL sekarang `https://api.cosmosin.io`. Pengguna Telegram lama perlu membuka **https://cosmosin.io**, daftar/login memakai Email atau Google, lalu masuk ke **Settings → Connect Telegram** dan tautkan akun Telegram yang sama. Setelah ditautkan, saldo dan API key lama aktif kembali di web. Ganti konfigurasi endpoint lama dengan alamat di panduan ini; bagi pengguna router, update repo, hentikan proses `router.js`, lalu jalankan lagi `claude` atau `codex`.
 
 > Diuji pada 8 November 2026 dengan Claude Code 2.1.319, Codex CLI 0.167.0, dan VS Code 1.145.2 di Windows 11. Router, autostart, serta extension Claude Code dan Codex di VS Code juga diuji ulang setelah Windows di-restart. Daftar model CosmosHub bisa berubah sewaktu-waktu.
 >
@@ -33,7 +35,7 @@ Ingin antarmuka chat seperti ChatGPT tapi memakai saldo CosmosHub? Pakai aplikas
 
 ## 0. Yang perlu disiapkan
 
-- **API key CosmosHub**. Ambil di dashboard CosmosHub, formatnya `sk-cos-...`. Belum punya akun? [Daftar di sini](https://t.me/CosmosStoreIDBot?start=ref_j86655).
+- **API key CosmosHub**. Ambil di dashboard **https://cosmosin.io**. Pengguna Telegram lama harus menautkan akun lewat **Settings → Connect Telegram** terlebih dahulu.
 - **Node.js 22 atau lebih baru**, untuk Codex. Unduh di https://nodejs.org.
 - Terminal: PowerShell (Windows) atau Terminal (macOS/Linux).
 
@@ -41,9 +43,9 @@ Ingin antarmuka chat seperti ChatGPT tapi memakai saldo CosmosHub? Pakai aplikas
 
 | Dipakai oleh | Format API | Alamat |
 |---|---|---|
-| Claude Code | Anthropic Messages | `https://api.cosmoshub.tech` |
-| Codex | OpenAI Responses | `https://api.cosmoshub.tech/v1` |
-| Copilot / aplikasi lain | OpenAI Chat Completions | `https://api.cosmoshub.tech/v1` |
+| Claude Code | Anthropic Messages | `https://api.cosmosin.io` |
+| Codex | OpenAI Responses | `https://api.cosmosin.io/v1` |
+| Copilot / aplikasi lain | OpenAI Chat Completions | `https://api.cosmosin.io/v1` |
 
 ---
 
@@ -79,7 +81,7 @@ Isi dengan contoh di bawah, lalu ganti `sk-cos-ISI-KEY-ANDA` dengan key Anda. Ka
 ```json
 {
   "env": {
-    "ANTHROPIC_BASE_URL": "https://api.cosmoshub.tech",
+    "ANTHROPIC_BASE_URL": "https://api.cosmosin.io",
     "ANTHROPIC_AUTH_TOKEN": "sk-cos-ISI-KEY-ANDA",
     "ANTHROPIC_DEFAULT_OPUS_MODEL": "gpt-6.1-sol",
     "ANTHROPIC_DEFAULT_SONNET_MODEL": "gpt-6-sol",
@@ -98,7 +100,7 @@ Claude Code punya tiga "slot" model: **opus** (paling pintar), **sonnet** (seimb
 claude
 ```
 
-Ketik `/status` di dalam Claude Code. Bagian base URL harus menunjukkan `https://api.cosmoshub.tech`.
+Ketik `/status` di dalam Claude Code. Bagian base URL harus menunjukkan `https://api.cosmosin.io`.
 
 **Peringatan yang normal (abaikan saja):**
 - *"Claude Code doesn't recognize the model ..."*: muncul karena nama model bukan model Claude. Claude Code menganggap konteksnya 200k token.
@@ -146,7 +148,7 @@ model_provider = "cosmoshub"
 
 [model_providers.cosmoshub]
 name = "CosmosHub"
-base_url = "https://api.cosmoshub.tech/v1"
+base_url = "https://api.cosmosin.io/v1"
 env_key = "COSMOSHUB_API_KEY"
 wire_api = "responses"
 ```
@@ -181,14 +183,14 @@ Di file `chatLanguageModels.json` tadi, ganti isi `"models": [ ... ]` dengan daf
 
 ```json
 "models": [
-  { "id": "gpt-6.1-sol",       "name": "GPT-6.1 Sol (CosmosHub)",       "url": "https://api.cosmoshub.tech/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 },
-  { "id": "gpt-6-sol",         "name": "GPT-6 Sol (CosmosHub)",         "url": "https://api.cosmoshub.tech/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 },
-  { "id": "kimi-k3.1-pro",     "name": "Kimi K3.1 Pro (CosmosHub)",     "url": "https://api.cosmoshub.tech/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 },
-  { "id": "deepseek-v4-pro",   "name": "DeepSeek V4 Pro (CosmosHub)",   "url": "https://api.cosmoshub.tech/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 },
-  { "id": "qwen-3.8-max",      "name": "Qwen 3.8 Max (CosmosHub)",      "url": "https://api.cosmoshub.tech/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 },
-  { "id": "kimi-k2.7-code",    "name": "Kimi K2.7 Code (CosmosHub)",    "url": "https://api.cosmoshub.tech/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 },
-  { "id": "glm-5.3",           "name": "GLM 5.3 (CosmosHub)",           "url": "https://api.cosmoshub.tech/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 },
-  { "id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash (CosmosHub)", "url": "https://api.cosmoshub.tech/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 }
+  { "id": "gpt-6.1-sol",       "name": "GPT-6.1 Sol (CosmosHub)",       "url": "https://api.cosmosin.io/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 },
+  { "id": "gpt-6-sol",         "name": "GPT-6 Sol (CosmosHub)",         "url": "https://api.cosmosin.io/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 },
+  { "id": "kimi-k3.1-pro",     "name": "Kimi K3.1 Pro (CosmosHub)",     "url": "https://api.cosmosin.io/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 },
+  { "id": "deepseek-v4-pro",   "name": "DeepSeek V4 Pro (CosmosHub)",   "url": "https://api.cosmosin.io/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 },
+  { "id": "qwen-3.8-max",      "name": "Qwen 3.8 Max (CosmosHub)",      "url": "https://api.cosmosin.io/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 },
+  { "id": "kimi-k2.7-code",    "name": "Kimi K2.7 Code (CosmosHub)",    "url": "https://api.cosmosin.io/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 },
+  { "id": "glm-5.3",           "name": "GLM 5.3 (CosmosHub)",           "url": "https://api.cosmosin.io/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 },
+  { "id": "deepseek-v4-flash", "name": "DeepSeek V4 Flash (CosmosHub)", "url": "https://api.cosmosin.io/v1/chat/completions", "toolCalling": true, "vision": false, "maxInputTokens": 128000, "maxOutputTokens": 16000 }
 ]
 ```
 
@@ -221,11 +223,11 @@ Cek daftar terbaru kapan saja:
 
 Windows (PowerShell):
 ```powershell
-(Invoke-RestMethod https://api.cosmoshub.tech/v1/models -Headers @{Authorization="Bearer $env:COSMOSHUB_API_KEY"}).data.id
+(Invoke-RestMethod https://api.cosmosin.io/v1/models -Headers @{Authorization="Bearer $env:COSMOSHUB_API_KEY"}).data.id
 ```
 macOS / Linux:
 ```bash
-curl -s https://api.cosmoshub.tech/v1/models -H "Authorization: Bearer $COSMOSHUB_API_KEY"
+curl -s https://api.cosmosin.io/v1/models -H "Authorization: Bearer $COSMOSHUB_API_KEY"
 ```
 
 | Kebutuhan | Pilihan model |
@@ -262,7 +264,7 @@ curl -s https://api.cosmoshub.tech/v1/models -H "Authorization: Bearer $COSMOSHU
 - **Jangan bagikan API key** di chat, screenshot, atau repository Git. File `settings.json` Claude Code berisi key, jadi jangan di-commit.
 - Kalau key terlanjur bocor, **buat key baru** di dashboard CosmosHub dan hapus key yang lama.
 - Dukungan resmi: hubungi admin CosmosHub lewat Telegram (tautan ada di dashboard).
-- Isi saldo atau daftar akun baru: https://t.me/CosmosStoreIDBot?start=ref_j86655
+- Isi saldo atau daftar akun baru: **https://cosmosin.io**.
 
 ---
 
@@ -391,7 +393,7 @@ winget install --id Bin-Huang.Chatbox -e
 
 1. Buka aplikasi GitHub Copilot dan login dengan akun GitHub.
 2. Buka **Settings → Model Providers**, lalu tambahkan provider **OpenAI-compatible**.
-3. Isi endpoint **`https://api.cosmoshub.tech/v1`** dan API key CosmosHub Anda. Bagian **`/v1` wajib ada**. Tanpa itu, aplikasi tidak bisa terhubung ke model CosmosHub.
+3. Isi endpoint **`https://api.cosmosin.io/v1`** dan API key CosmosHub Anda. Bagian **`/v1` wajib ada**. Tanpa itu, aplikasi tidak bisa terhubung ke model CosmosHub.
 4. Saat memulai sesi, pilih model CosmosHub di model picker, misalnya `gpt-6.1-sol`.
 
 Akun Copilot Business/Enterprise: admin harus mengaktifkan policy *Enable custom models (BYOK)*.
@@ -401,7 +403,7 @@ Akun Copilot Business/Enterprise: admin harus mengaktifkan policy *Enable custom
 1. Buka Chatbox. Kalau di layar pembuka diminta lisensi, pilih opsi untuk memakai **API key sendiri**. Lisensi hanya untuk layanan berbayar "Chatbox AI". Lalu masuk ke **Settings → Model Provider**. Tambahkan provider baru bertipe **OpenAI API Compatible**.
 2. Isi:
    - Name: `CosmosHub`
-   - API Host: `https://api.cosmoshub.tech/v1` (dengan `/v1`, supaya tombol **Fetch** bisa mengambil daftar model dari `/v1/models`)
+   - API Host: `https://api.cosmosin.io/v1` (dengan `/v1`, supaya tombol **Fetch** bisa mengambil daftar model dari `/v1/models`)
    - API Path: `/chat/completions`
    - API Key: key CosmosHub Anda
 3. Klik **Fetch** untuk mengambil daftar model, atau tambahkan manual: `gpt-6.1-sol`, `kimi-k3.1-pro`, `deepseek-v4-flash`, dan seterusnya.

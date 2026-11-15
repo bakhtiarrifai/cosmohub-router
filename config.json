@@ -1,5 +1,5 @@
 {
-  "upstream": "https://api.cosmoshub.tech",
+  "upstream": "https://api.cosmosin.io",
   "port": 4141,
   "modelRefreshSeconds": 300,
   "cooldownSeconds": 120,
