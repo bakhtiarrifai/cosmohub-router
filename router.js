@@ -14,12 +14,13 @@ import { randomBytes } from "node:crypto";
 import { fileURLToPath } from "node:url";
 
 const HERE = dirname(fileURLToPath(import.meta.url));
-const CONFIG = JSON.parse(readFileSync(join(HERE, "config.json"), "utf8"));
+const CONFIG = JSON.parse(readFileSync(process.env.COSMOHUB_CONFIG ?? join(HERE, "config.json"), "utf8"));
 const UPSTREAM = CONFIG.upstream.replace(/\/+$/, "");
 const PORT = Number(process.env.COSMOHUB_PORT ?? CONFIG.port);
 const COOLDOWN_MS = CONFIG.cooldownSeconds * 1000;
 
-const STATE_DIR = join(homedir(), ".cosmohub");
+const STATE_DIR = process.env.COSMOHUB_STATE_DIR ?? join(homedir(), ".cosmohub");
+const SELECTION_FILE = join(STATE_DIR, "model-selection.json");
 const TOKEN_FILE = join(STATE_DIR, "router-token");
 const EXHAUSTED_FILE = join(STATE_DIR, "exhausted.json");
 const LOG_FILE = join(STATE_DIR, "router.log");
@@ -49,6 +50,14 @@ const log = (line) => {
 let available = null; // Set of model ids CosmosHub lists, or null when unknown
 let lastRefresh = 0;
 const cooldown = new Map(); // model id -> epoch ms until which it is skipped
+const selections = existsSync(SELECTION_FILE) ? JSON.parse(readFileSync(SELECTION_FILE, "utf8")) : {};
+for (const [slot, model] of Object.entries(selections)) {
+  if (!Object.hasOwn(CONFIG.chains, slot) || typeof model !== "string" || !model.trim()) {
+    throw new Error("Invalid model-selection.json: expected slot -> model id");
+  }
+}
+const lastRoutes = new Map();
+let lastRoute = null;
 
 async function refreshModels() {
   try {
@@ -87,12 +96,71 @@ function slotFor(model) {
   return ["opus", "sonnet", "haiku"].find((k) => m.includes(k)) ?? null;
 }
 
+// The explicit prefix also lets /model pin a model whose name contains "opus" etc.
+const MANUAL_PREFIX = "hub-model/";
+
+function routingFor(model) {
+  if (model.startsWith(MANUAL_PREFIX)) return { slot: null, mode: "manual", model: model.slice(MANUAL_PREFIX.length) };
+  const slot = slotFor(model) ?? CONFIG.defaultChain;
+  return { slot, mode: selections[slot] ? "manual" : "auto", model: selections[slot] ?? null };
+}
+
 function chainFor(model) {
+  const route = routingFor(model);
+  // A manual choice is exact: no availability filtering, cooldown skipping, or silent fallback.
+  if (route.mode === "manual") return [route.model];
   const slot = slotFor(model);
   const patterns = slot ? CONFIG.chains[slot] : [model, ...CONFIG.chains[CONFIG.defaultChain]];
   const out = [];
   for (const p of patterns) for (const id of expand(p)) if (!out.includes(id)) out.push(id);
   return out;
+}
+
+function candidatesFor(model) {
+  const chain = chainFor(model);
+  if (routingFor(model).mode === "manual") return chain;
+  const ready = chain.filter((id) => (cooldown.get(id) ?? 0) <= Date.now());
+  return ready.length ? ready : chain;
+}
+
+function modelStatus() {
+  return {
+    availableModels: available ? [...available].sort() : null,
+    slots: Object.fromEntries(Object.keys(CONFIG.chains).map((slot) => [slot, {
+      mode: selections[slot] ? "manual" : "auto",
+      selectedModel: selections[slot] ?? null,
+      nextModel: candidatesFor(slot)[0] ?? null,
+      lastRoute: lastRoutes.get(slot) ?? null,
+    }])),
+    lastRoute,
+  };
+}
+
+async function modelControl(req, res) {
+  if (req.method === "GET") return sendJson(res, 200, modelStatus());
+  if (req.method !== "POST") return sendJson(res, 405, { error: "Use GET or POST" });
+  let input;
+  try { input = JSON.parse((await readBody(req)).toString("utf8")); }
+  catch { return sendJson(res, 400, { error: "Expected JSON with slot and model (null for auto)" }); }
+  const { slot, model } = input ?? {};
+  if (!Object.hasOwn(CONFIG.chains, slot) || !(model === null || (typeof model === "string" && model.trim() && !/\s|\*/.test(model)))) {
+    return sendJson(res, 400, { error: `Use slot: ${Object.keys(CONFIG.chains).join(", ")}; model: an exact model ID or null for auto` });
+  }
+  if (model !== null) {
+    const refreshed = await refreshModels();
+    if (!refreshed.ok) return sendJson(res, 503, { error: "Cannot verify available models; selection unchanged" });
+    if (!available.has(model)) return sendJson(res, 400, { error: `Model '${model}' is not listed by CosmosHub` });
+  }
+  const updated = { ...selections };
+  if (model === null) delete updated[slot];
+  else updated[slot] = model;
+  const temp = SELECTION_FILE + ".tmp";
+  writeFileSync(temp, JSON.stringify(updated, null, 2));
+  renameSync(temp, SELECTION_FILE);
+  if (model === null) delete selections[slot];
+  else selections[slot] = model;
+  log(`selection ${slot} -> ${model ?? "auto"}`);
+  return sendJson(res, 200, modelStatus());
 }
 
 // ---------- error classification ----------
@@ -140,9 +208,13 @@ function sendJson(res, status, obj) {
 
 const HOP = new Set(["content-encoding", "content-length", "transfer-encoding", "connection", "keep-alive"]);
 
-function pipeResponse(r, res) {
+function pipeResponse(r, res, route = null) {
   const headers = {};
   r.headers.forEach((v, k) => { if (!HOP.has(k)) headers[k] = v; });
+  if (route) {
+    headers["x-cosmohub-model"] = route.model;
+    headers["x-cosmohub-mode"] = route.mode;
+  }
   res.writeHead(r.status, headers);
   if (!r.body) return res.end();
   Readable.fromWeb(r.body).on("error", () => res.destroy()).pipe(res);
@@ -225,6 +297,7 @@ async function handle(req, res) {
   if (localToken(req) !== TOKEN) {
     return sendJson(res, 401, errorPayload(url.pathname, "auth", "cosmohub-router: wrong or missing local token"));
   }
+  if (url.pathname === "/router/models") return modelControl(req, res);
 
   const ac = new AbortController();
   res.on("close", () => { if (!res.writableEnded) ac.abort(); });
@@ -241,14 +314,11 @@ async function handle(req, res) {
   }
 
   const requested = json.model;
-  const chain = chainFor(requested);
-  if (!chain.length) {
+  const route = routingFor(requested);
+  const candidates = candidatesFor(requested);
+  if (!candidates.length || !candidates[0]) {
     return sendJson(res, 503, errorPayload(url.pathname, "unavailable", `cosmohub-router: no CosmosHub model available for '${requested}'`));
   }
-  const now = Date.now();
-  let candidates = chain.filter((id) => (cooldown.get(id) ?? 0) <= now);
-  if (!candidates.length) candidates = chain; // everything is cooling down: try anyway rather than fail outright
-
   let last = null;
   for (const id of candidates) {
     json.model = id;
@@ -264,8 +334,13 @@ async function handle(req, res) {
     }
 
     if (r.ok) {
-      log(`${url.pathname} ${requested} -> ${id} ${r.status}`);
-      return pipeResponse(r, res);
+      // count_tokens and other auxiliary endpoints must not replace the last generation.
+      if (["/v1/messages", "/v1/responses", "/v1/chat/completions"].includes(url.pathname)) {
+        lastRoute = { requested, model: id, slot: route.slot, mode: route.mode, at: new Date().toISOString(), path: url.pathname };
+        if (route.slot) lastRoutes.set(route.slot, lastRoute);
+      }
+      log(`${url.pathname} ${requested} -> ${id} ${r.status} ${route.mode}`);
+      return pipeResponse(r, res, { model: id, mode: route.mode });
     }
 
     const text = await r.text();
@@ -278,7 +353,7 @@ async function handle(req, res) {
         "Exit this session (/exit or Ctrl+C) and the cosmohub launcher will resume it on your subscription.";
       return sendJson(res, isAnthropic(url.pathname) ? 403 : 429, errorPayload(url.pathname, "exhausted", msg));
     }
-    if (kind === "final") {
+    if (kind === "final" || route.mode === "manual") {
       res.writeHead(r.status, { "content-type": r.headers.get("content-type") ?? "application/json" });
       return res.end(text);
     }

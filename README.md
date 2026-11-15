@@ -304,10 +304,39 @@ Router ini program Node.js kecil tanpa dependency. Ia hanya mendengarkan di `127
 |---|---|
 | `claude` / `codex` | CosmosHub dulu (pindah model otomatis). Kalau CosmosHub tidak bisa dipakai, otomatis pakai subscription |
 | `claude-sub` / `codex-sub` | Selalu pakai subscription |
-| `cosmohub-status` | Kesehatan router dan log routing terbaru |
+| `cosmohub-status` | Kesehatan router, model tujuan berikutnya, model terakhir yang dipakai, dan log routing |
+| `cosmohub-model` | Lihat mode auto/manual dan model per slot |
+| `cosmohub-model -List` | Daftar ID model yang tersedia dari CosmosHub |
+| `cosmohub-model -Watch` | Pantau perubahan model hasil routing di terminal terpisah (Ctrl+C untuk berhenti) |
+| `cosmohub-model opus kimi-k3.1-pro` | Kunci slot opus ke model tersebut, tanpa fallback diam-diam |
+| `cosmohub-model opus auto` | Kembalikan slot opus ke fallback otomatis |
 | `C:\Projects\cosmohub-router\check.ps1` | Cek lengkap semua bagian (berguna setelah restart Windows) |
 
 Saat start akan muncul `[cosmohub] Using CosmosHub API (... models)`. Kalau saldo habis di tengah sesi, tool akan menampilkan pesan error. Ketik `/exit`, dan launcher akan melanjutkan percakapan yang sama di subscription (`claude --continue` / `codex resume --last`).
+
+### Lihat dan pilih model secara manual
+
+Setiap launcher menampilkan tabel **Next request** (prediksi tujuan berikutnya), **Last used** (model tujuan request generasi terakhir yang diterima upstream), dan waktunya. Nama slot/model di header Claude Code bisa tetap berupa alias; lihat `cosmohub-model` untuk tujuan routing sebenarnya. Router tidak mengklaim mengetahui model internal di balik alias milik CosmosHub.
+
+```powershell
+# Muat fungsi baru di terminal yang sudah terbuka setelah update repo:
+. C:\Projects\cosmohub-router\cosmohub.ps1
+
+cosmohub-model                         # status seluruh slot
+cosmohub-model -List                   # daftar ID model
+cosmohub-model opus kimi-k3.1-pro       # pilihan manual untuk slot opus
+cosmohub-model sonnet deepseek-v4-pro   # slot sonnet bisa berbeda
+cosmohub-model codex gpt-6-sol          # pilihan untuk Codex
+cosmohub-model opus auto               # kembali ke fallback otomatis
+```
+
+Pilihan disimpan di `~/.cosmohub/model-selection.json` dan tetap ada setelah router/komputer restart. Berlaku **global per slot** untuk request berikutnya, termasuk sesi terminal dan extension yang sedang terbuka; request yang sudah berjalan tidak diubah. Mode manual tidak pindah model saat model gagal: error dikembalikan supaya pilihan tidak diam-diam berubah. Penanganan saldo habis tetap berlaku.
+
+Untuk memilih model tepat **hanya dalam sesi Claude Code**, ketik `/model hub-model/kimi-k3.1-pro`. Prefix `hub-model/` mengunci ID tanpa fallback dan mengabaikan pilihan global per slot. Kembali ke `/model opus` untuk mengikuti pengaturan slot lagi.
+
+Saat bekerja, buka terminal kedua dan jalankan `cosmohub-model -Watch` untuk melihat tujuan routing terbaru. Watch membaca status setiap detik, bukan semua event: request yang sangat berdekatan dapat terlewat. **Last used** bersifat global, bukan status khusus satu percakapan, dan baru tercatat saat upstream menerima request generasi (bukan jaminan stream selesai). Tugas latar belakang juga bisa mengubahnya. Setelah router restart, status terakhir kosong sampai ada request baru. Respons generasi menyertakan header `x-cosmohub-model` dan `x-cosmohub-mode`; endpoint lokal `GET /router/models` serta `POST /router/models` (`{"slot":"opus","model":"kimi-k3.1-pro"}` atau `model: null` untuk auto) memerlukan token router.
+
+Jika router masih menjalankan versi lama, hentikan **hanya proses Node yang menjalankan `cosmohub-router\router.js`** saat tidak ada generasi berjalan, lalu jalankan `cosmohub-status` untuk menyalakan versi baru. Tidak perlu menjalankan ulang installer atau membangun wrapper untuk fitur ini.
 
 ### Ubah urutan model
 
@@ -374,7 +403,7 @@ Kirim satu pesan di panel extension, lalu cek:
 | Extension | Yang dicek | Tanda berhasil |
 |---|---|---|
 | Claude Code | `check.ps1`, baris "Last VS Code Claude launch" (atau `~/.cosmohub/wrapper.log`) | Diawali `cosmoshub ::` |
-| Claude Code | `~/.cosmohub/router.log` | Ada baris `/v1/messages hub-opus -> ... 200` |
+| Claude Code | `~/.cosmohub/router.log` | Ada baris `/v1/messages claude-opus-5-5 -> ... 200` |
 | Codex | `~/.cosmohub/router.log` | Ada baris `/v1/responses ... 200` |
 | Codex | Baris pertama file sesi terbaru di `~/.codex/sessions/` | Berisi `"originator":"codex_vscode"` dan `"model_provider":"cosmohub"` |
 

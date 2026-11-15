@@ -2,6 +2,7 @@
 #   claude / codex          CosmosHub first (via the local router), subscription if CosmosHub can't serve
 #   claude-sub / codex-sub  always the subscription
 #   cosmohub-status         router health, models, recent routing log
+#   cosmohub-model          actual/next models; -List, -Watch, or <slot> <model|auto>
 # If CosmosHub's balance runs out mid-session, exit the tool and it resumes on the subscription
 # (claude --continue / codex resume --last).
 
@@ -59,9 +60,9 @@ function Invoke-CosmoHubTool($Tool, [object[]]$ToolArgs) {
             ANTHROPIC_BASE_URL           = $CosmoHubUrl
             ANTHROPIC_AUTH_TOKEN         = $token
             ANTHROPIC_API_KEY            = $null
-            ANTHROPIC_DEFAULT_OPUS_MODEL   = 'hub-opus'
-            ANTHROPIC_DEFAULT_SONNET_MODEL = 'hub-sonnet'
-            ANTHROPIC_DEFAULT_HAIKU_MODEL  = 'hub-haiku'
+            ANTHROPIC_DEFAULT_OPUS_MODEL   = 'claude-opus-5-5'
+            ANTHROPIC_DEFAULT_SONNET_MODEL = 'claude-sonnet-5-5'
+            ANTHROPIC_DEFAULT_HAIKU_MODEL  = 'claude-haiku-5-5'
         }
     } else {
         @{ COSMOHUB_ROUTER_TOKEN = $token }
@@ -70,6 +71,8 @@ function Invoke-CosmoHubTool($Tool, [object[]]$ToolArgs) {
     foreach ($n in $vars.Keys) { $saved[$n] = [Environment]::GetEnvironmentVariable($n, 'Process'); [Environment]::SetEnvironmentVariable($n, $vars[$n], 'Process') }
 
     Write-Host "[cosmohub] Using CosmosHub API ($($h.models) models) via $CosmoHubUrl" -ForegroundColor Cyan
+    try { Show-CosmoHubModels (Get-CosmoHubModels) } catch { Write-Warning $_.Exception.Message }
+    Write-Host '[cosmohub] Live routing: cosmohub-model -Watch (in another terminal). Manual: cosmohub-model <slot> <model>' -ForegroundColor DarkCyan
     try {
         if ($Tool -eq 'claude') { Invoke-CosmoHubReal claude $ToolArgs }
         else { Invoke-CosmoHubCodex $ToolArgs }
@@ -94,9 +97,74 @@ function codex  { Invoke-CosmoHubTool codex $args }
 function claude-sub { Invoke-CosmoHubReal claude $args }
 function codex-sub  { Invoke-CosmoHubReal codex $args }
 
+function Get-CosmoHubModels {
+    if (-not (Start-CosmoHubRouter)) { throw 'CosmosHub router could not start.' }
+    $token = (Get-Content (Join-Path $CosmoHubState 'router-token') -Raw).Trim()
+    Invoke-RestMethod "$CosmoHubUrl/router/models" -Headers @{ Authorization = "Bearer $token" } -TimeoutSec 20
+}
+
+function Show-CosmoHubModels($Status) {
+    $Status.slots.PSObject.Properties | ForEach-Object {
+        $s = $_.Value
+        [pscustomobject]@{
+            Slot = $_.Name
+            Mode = $s.mode
+            'Next request' = $s.nextModel
+            'Last used' = if ($s.lastRoute) { $s.lastRoute.model } else { '-' }
+            'Last used at (UTC)' = if ($s.lastRoute) { $s.lastRoute.at } else { '-' }
+        }
+    } | Format-Table -AutoSize | Out-Host
+    if ($Status.lastRoute) {
+        $r = $Status.lastRoute
+        Write-Host "[cosmohub] Last successful routing: $($r.requested) -> $($r.model) [$($r.mode)] at $($r.at)" -ForegroundColor Cyan
+    } else {
+        Write-Host '[cosmohub] No generation routed since this router started; Next request is a prediction, not a model already used.' -ForegroundColor DarkCyan
+    }
+}
+
+function cosmohub-model {
+    [CmdletBinding()]
+    param(
+        [Parameter(Position = 0)][ValidateSet('opus', 'sonnet', 'haiku', 'codex')][string]$Slot,
+        [Parameter(Position = 1)][string]$Model,
+        [switch]$List,
+        [switch]$Watch
+    )
+    if ($PSBoundParameters.ContainsKey('Model')) {
+        if (-not $Slot -or [string]::IsNullOrWhiteSpace($Model)) { throw 'Use: cosmohub-model <opus|sonnet|haiku|codex> <model-id|auto>' }
+        if ($List -or $Watch) { throw 'Use -List or -Watch separately from setting a model.' }
+        if (-not (Start-CosmoHubRouter)) { throw 'CosmosHub router could not start.' }
+        $token = (Get-Content (Join-Path $CosmoHubState 'router-token') -Raw).Trim()
+        $chosen = if ($Model -eq 'auto') { $null } else { $Model }
+        $body = @{ slot = $Slot; model = $chosen } | ConvertTo-Json -Compress
+        $status = Invoke-RestMethod "$CosmoHubUrl/router/models" -Method Post -Headers @{ Authorization = "Bearer $token" } -ContentType 'application/json' -Body $body -TimeoutSec 30
+        Write-Host "[cosmohub] $Slot -> $Model. Applies to subsequent requests, including open sessions." -ForegroundColor Green
+        Show-CosmoHubModels $status
+        return
+    }
+    if ($Slot) { throw 'Supply a model ID or auto after the slot.' }
+    $status = Get-CosmoHubModels
+    if ($List) { $status.availableModels; return }
+    Show-CosmoHubModels $status
+    if ($Watch) {
+        Write-Host '[cosmohub] Watching successful routing (all sessions). Ctrl+C to stop.' -ForegroundColor DarkCyan
+        $previous = $status.lastRoute | ConvertTo-Json -Compress
+        while ($true) {
+            Start-Sleep -Seconds 1
+            $status = Get-CosmoHubModels
+            $current = $status.lastRoute | ConvertTo-Json -Compress
+            if ($current -ne $previous) {
+                Show-CosmoHubModels $status
+                $previous = $current
+            }
+        }
+    }
+}
+
 function cosmohub-status {
     $h = Get-CosmoHubHealth
     $h | Format-List usable, reason, models, exhaustedAt
+    if ($h.ok) { Show-CosmoHubModels (Get-CosmoHubModels) }
     $log = Join-Path $CosmoHubState 'router.log'
     if (Test-Path $log) { Write-Host 'Recent routing:'; Get-Content $log -Tail 15 }
 }

@@ -120,9 +120,9 @@ static class ClaudeHub
                 psi.EnvironmentVariables["ANTHROPIC_BASE_URL"] = RouterUrl;
                 psi.EnvironmentVariables["ANTHROPIC_AUTH_TOKEN"] = File.ReadAllText(tokenFile).Trim();
                 psi.EnvironmentVariables.Remove("ANTHROPIC_API_KEY");
-                psi.EnvironmentVariables["ANTHROPIC_DEFAULT_OPUS_MODEL"] = "hub-opus";
-                psi.EnvironmentVariables["ANTHROPIC_DEFAULT_SONNET_MODEL"] = "hub-sonnet";
-                psi.EnvironmentVariables["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = "hub-haiku";
+                psi.EnvironmentVariables["ANTHROPIC_DEFAULT_OPUS_MODEL"] = "claude-opus-5-5";
+                psi.EnvironmentVariables["ANTHROPIC_DEFAULT_SONNET_MODEL"] = "claude-sonnet-5-5";
+                psi.EnvironmentVariables["ANTHROPIC_DEFAULT_HAIKU_MODEL"] = "claude-haiku-5-5";
             }
         }
         string firstArgs = string.Join(" ", rest.GetRange(0, Math.Min(3, rest.Count)));
