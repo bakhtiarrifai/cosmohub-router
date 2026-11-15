@@ -322,6 +322,53 @@ Edit `config.json`. Setiap slot berisi daftar model yang dicoba berurutan. Pola 
 
 Setelah mengubah `config.json`, hentikan proses router (`node.exe` yang menjalankan `router.js`). Router akan dijalankan ulang otomatis oleh `claude` atau `codex` berikutnya.
 
+### Update dan restart router (Windows)
+
+Gunakan PowerShell biasa, tidak perlu Administrator. Tutup sesi Claude Code/Codex yang sedang memakai router terlebih dahulu. Contoh ini memakai lokasi instalasi `C:\Projects\cosmohub-router`; sesuaikan `$root` kalau repo Anda berada di tempat lain.
+
+1. Update repo dan pastikan upstream menggunakan API baru. Simpan perubahan lokal dengan `git commit` atau `git stash -u` sebelum berpindah branch; perintah berikut khusus memperbarui `main`:
+   ```powershell
+   Set-Location C:\Projects\cosmohub-router
+   git status --short
+   git switch main
+   git branch --show-current
+   git pull --ff-only
+   (Get-Content .\config.json -Raw | ConvertFrom-Json).upstream
+   ```
+   Setelah `git switch`, output `git branch --show-current` harus `main` dan output terakhir harus `https://api.cosmosin.io`. Kalau `git switch` atau `git pull` gagal karena perubahan lokal, commit/stash perubahan tersebut terlebih dahulu. Jangan gunakan `git reset --hard` karena dapat menghapus urutan model yang pernah Anda ubah.
+2. Hentikan **hanya** proses router. Jangan mematikan semua `node.exe` karena bisa menghentikan aplikasi Node.js lain:
+   ```powershell
+   $root = "C:\Projects\cosmohub-router"
+   Get-CimInstance Win32_Process -Filter "Name='node.exe'" |
+       Where-Object {
+           $_.CommandLine -like "*$root*" -and
+           $_.CommandLine -like "*router.js*"
+       } |
+       ForEach-Object { Stop-Process -Id $_.ProcessId }
+   ```
+3. Jalankan kembali router dengan konfigurasi baru:
+   ```powershell
+   $node = Join-Path $env:ProgramFiles "nodejs\node.exe"
+   Start-Process -FilePath $node -ArgumentList "`"$root\router.js`"" -WindowStyle Hidden
+   ```
+   Langkah ini bisa dilewati; launcher akan menyalakan router saat `claude` atau `codex` berikutnya dijalankan.
+4. Verifikasi router dan API baru:
+   ```powershell
+   Start-Sleep -Seconds 2
+   Invoke-RestMethod "http://127.0.0.1:4141/health?live=1" |
+       Format-List usable,reason,models,lastRefresh
+   & "$root\check.ps1"
+   ```
+   Pastikan hasilnya `usable : True`, `reason : ok`, dan `check.ps1` menampilkan **All good.** Jumlah model dapat berubah.
+
+Kalau router gagal menyala, jalankan di foreground agar pesan error terlihat:
+
+```powershell
+& "$env:ProgramFiles\nodejs\node.exe" "$root\router.js"
+```
+
+Tekan `Ctrl+C` untuk menghentikannya setelah debugging. API key tidak perlu dipindahkan atau dibuat ulang. Pengguna Telegram lama cukup memastikan akunnya sudah ditautkan di **cosmosin.io → Settings → Connect Telegram** agar saldo dan key lama aktif di platform baru.
+
 ### Cara kerjanya
 
 ```
