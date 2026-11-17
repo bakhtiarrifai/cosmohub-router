@@ -12,6 +12,8 @@ Repo ini juga berisi **router fallback opsional** (khusus Windows). Router ini o
 
 > **Migrasi API:** Base URL sekarang `https://api.cosmosin.io`. Pengguna Telegram lama perlu membuka **https://cosmosin.io**, daftar/login memakai Email atau Google, lalu masuk ke **Settings → Connect Telegram** dan tautkan akun Telegram yang sama. Setelah ditautkan, saldo dan API key lama aktif kembali di web. Ganti konfigurasi endpoint lama dengan alamat di panduan ini; bagi pengguna router, update repo, hentikan proses `router.js`, lalu jalankan lagi `claude` atau `codex`.
 
+> **⚠️ Codex sementara tidak bisa memakai CosmosHub.** Per 17 November 2026 CosmosHub menghapus endpoint `/v1/responses` (jawabannya `410 Gone: The /v1/responses endpoint has been removed. Use /v1/chat/completions or /v1/messages instead.`), sedangkan Codex CLI hanya mendukung Responses API (`wire_api = "chat"` sudah ditolak Codex). Akibatnya [bagian 2](#2-codex-openai), profil Codex di router ([bagian 7](#7-opsional-router-fallback-otomatis-windows)), dan extension Codex ([bagian 8](#8-opsional-extension-claude-code--codex-di-vs-code)) tidak berfungsi sampai ada jalan keluar. Claude Code, Copilot, dan Chatbox tidak terpengaruh.
+
 > Diuji pada 8 November 2026 dengan Claude Code 2.1.319, Codex CLI 0.167.0, dan VS Code 1.145.2 di Windows 11. Router, autostart, serta extension Claude Code dan Codex di VS Code juga diuji ulang setelah Windows di-restart. Daftar model CosmosHub bisa berubah sewaktu-waktu.
 >
 > Ini panduan komunitas, bukan dokumentasi resmi CosmosHub, Anthropic, OpenAI, atau GitHub.
@@ -23,7 +25,7 @@ Repo ini juga berisi **router fallback opsional** (khusus Windows). Router ini o
 | Aplikasi | Bisa pakai CosmosHub? | Keterangan |
 |---|---|---|
 | **Claude Code** (terminal) | ✅ Ya | [Bagian 1](#1-claude-code). Sudah diuji |
-| **Codex CLI** (terminal) | ✅ Ya | [Bagian 2](#2-codex-openai). Sudah diuji, tanpa login ChatGPT |
+| **Codex CLI** (terminal) | ⚠️ Sementara tidak | CosmosHub menghapus `/v1/responses` (17 Nov 2026), yang dibutuhkan Codex. Lihat catatan di atas |
 | **GitHub Copilot Chat di VS Code** | ✅ Ya | [Bagian 3](#3-github-copilot-vs-code). Sudah diuji: chat dan agent mode |
 | **Extension Claude Code & Codex di VS Code** | ✅ Ya | [Bagian 8](#8-opsional-extension-claude-code--codex-di-vs-code). Lewat router. Keduanya sudah diuji |
 | **Aplikasi desktop GitHub Copilot** | ✅ Ya | [Bagian 9](#9-aplikasi-desktop-github-copilot--chatbox). Sudah diuji. Endpoint wajib diakhiri `/v1` |
@@ -346,10 +348,12 @@ Jika router masih menjalankan versi lama, hentikan **hanya proses Node yang menj
 
 Edit `config.json`. Setiap slot berisi daftar model yang dicoba berurutan. Pola seperti `claude-opus*` berarti "model Claude Opus terbaru kalau tersedia".
 
+Urutan bawaan (diperbarui 17 November 2026) mendahulukan model kelas Opus yang paling murah per langkah Claude Code, diukur dengan request Claude Code asli dan biaya yang dilaporkan CosmosHub: `deepseek-v4-pro-0813` (±Rp16 per langkah), `kimi-k3.1-pro` (±Rp15, lebih lambat), `glm-5.3` (±Rp19), `mimo-v2.6-pro` dan `minimax-m3` (±Rp11), lalu `gpt-6.1-sol` (±Rp71 tanpa cache; output Rp8.100 per 1 juta token). `qwen-3.8-max` dikeluarkan karena tokenizer-nya menghitung prompt yang sama ±50% lebih banyak token. Untuk slot haiku, `deepseek-v4-flash` paling hemat (±Rp1 per judul, output paling pendek).
+
 ```json
-"opus":   ["claude-opus*",   "gpt-6.1-sol", "gpt-6-sol", "kimi-k3.1-pro", "deepseek-v4-pro", "qwen-3.8-max"],
-"sonnet": ["claude-sonnet*", "gpt-6-sol", "kimi-k2.7-code", "glm-5.3", "deepseek-v4-pro"],
-"haiku":  ["claude-haiku*",  "deepseek-v4-flash", "glm-5.3-flash", "gemini-3.8-flash"],
+"opus":   ["claude-opus*", "deepseek-v4-pro-0813", "kimi-k3.1-pro", "glm-5.3", "mimo-v2.6-pro", "minimax-m3", "gpt-6.1-sol"],
+"sonnet": ["claude-sonnet*", "deepseek-v4-pro-0813", "glm-5.3", "kimi-k2.7-code", "mimo-v2.6-pro", "gpt-6.1-sol"],
+"haiku":  ["claude-haiku*", "deepseek-v4-flash", "minimax-m3.1-flash", "glm-5.3-flash", "deepseek-v4.1-flash"],
 "codex":  ["gpt-6.1-sol", "gpt-6-sol", "gpt-5.6-sol", "kimi-k3.1-pro", "deepseek-v4-pro"]
 ```
 
@@ -462,6 +466,8 @@ This repo also contains an **optional fallback router** (Windows only). It autom
 
 > **API migration:** the base URL is now `https://api.cosmosin.io`. Existing Telegram users need to open **https://cosmosin.io**, sign up / sign in with Email or Google, then go to **Settings → Connect Telegram** and link the same Telegram account. Once linked, the old balance and API keys work again on the web. Replace the old endpoint configuration with the addresses in this guide; router users should update the repo, stop the `router.js` process, then run `claude` or `codex` again.
 
+> **⚠️ Codex can't use CosmosHub for now.** As of 17 November 2026 CosmosHub removed the `/v1/responses` endpoint (it answers `410 Gone: The /v1/responses endpoint has been removed. Use /v1/chat/completions or /v1/messages instead.`), and Codex CLI only supports the Responses API (Codex rejects `wire_api = "chat"`). So [section 2](#2-codex-openai-1), the router's Codex profile ([section 7](#7-optional-automatic-fallback-router-windows)) and the Codex extension ([section 8](#8-optional-claude-code--codex-extensions-in-vs-code)) don't work until there is a way around it. Claude Code, Copilot and Chatbox are not affected.
+
 > Tested on 8 November 2026 with Claude Code 2.1.319, Codex CLI 0.167.0 and VS Code 1.145.2 on Windows 11. The router, autostart, and the Claude Code and Codex extensions in VS Code were tested again after a Windows restart. The CosmosHub model list can change at any time.
 >
 > This is a community guide, not official documentation from CosmosHub, Anthropic, OpenAI or GitHub.
@@ -473,7 +479,7 @@ This repo also contains an **optional fallback router** (Windows only). It autom
 | App | Works with CosmosHub? | Notes |
 |---|---|---|
 | **Claude Code** (terminal) | ✅ Yes | [Section 1](#1-claude-code-1). Tested |
-| **Codex CLI** (terminal) | ✅ Yes | [Section 2](#2-codex-openai-1). Tested, no ChatGPT login |
+| **Codex CLI** (terminal) | ⚠️ Not for now | CosmosHub removed `/v1/responses` (17 Nov 2026), which Codex needs. See the note above |
 | **GitHub Copilot Chat in VS Code** | ✅ Yes | [Section 3](#3-github-copilot-vs-code-1). Tested: chat and agent mode |
 | **Claude Code & Codex extensions in VS Code** | ✅ Yes | [Section 8](#8-optional-claude-code--codex-extensions-in-vs-code). Through the router. Both tested |
 | **GitHub Copilot desktop app** | ✅ Yes | [Section 9](#9-github-copilot-desktop-app--chatbox). Tested. The endpoint must end in `/v1` |
@@ -796,10 +802,12 @@ If the router is still running an old version, stop **only the Node process runn
 
 Edit `config.json`. Each slot holds a list of models tried in order. A pattern like `claude-opus*` means "the newest Claude Opus model, if available".
 
+The default order (updated 17 November 2026) puts the Opus-class models that cost least per Claude Code step first, measured with a real Claude Code request and the cost CosmosHub reports: `deepseek-v4-pro-0813` (~Rp16 a step), `kimi-k3.1-pro` (~Rp15, slower), `glm-5.3` (~Rp19), `mimo-v2.6-pro` and `minimax-m3` (~Rp11), then `gpt-6.1-sol` (~Rp71 without cache; output Rp8,100 per million tokens). `qwen-3.8-max` was dropped because its tokenizer counts the same prompt as ~50% more tokens. For the haiku slot, `deepseek-v4-flash` is the most economical (~Rp1 per title, shortest output).
+
 ```json
-"opus":   ["claude-opus*",   "gpt-6.1-sol", "gpt-6-sol", "kimi-k3.1-pro", "deepseek-v4-pro", "qwen-3.8-max"],
-"sonnet": ["claude-sonnet*", "gpt-6-sol", "kimi-k2.7-code", "glm-5.3", "deepseek-v4-pro"],
-"haiku":  ["claude-haiku*",  "deepseek-v4-flash", "glm-5.3-flash", "gemini-3.8-flash"],
+"opus":   ["claude-opus*", "deepseek-v4-pro-0813", "kimi-k3.1-pro", "glm-5.3", "mimo-v2.6-pro", "minimax-m3", "gpt-6.1-sol"],
+"sonnet": ["claude-sonnet*", "deepseek-v4-pro-0813", "glm-5.3", "kimi-k2.7-code", "mimo-v2.6-pro", "gpt-6.1-sol"],
+"haiku":  ["claude-haiku*", "deepseek-v4-flash", "minimax-m3.1-flash", "glm-5.3-flash", "deepseek-v4.1-flash"],
 "codex":  ["gpt-6.1-sol", "gpt-6-sol", "gpt-5.6-sol", "kimi-k3.1-pro", "deepseek-v4-pro"]
 ```
 
