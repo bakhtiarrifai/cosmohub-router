@@ -2,7 +2,7 @@
 
 Panduan memakai saldo **CosmosHub** (dibayar dalam Rupiah) untuk menjalankan **Claude Code**, **OpenAI Codex**, dan **GitHub Copilot Chat**. Cara ini **tidak butuh** subscription Claude Pro/Max atau ChatGPT Plus. Semua pemakaian dipotong dari saldo CosmosHub.
 
-> **Belum punya akun CosmosHub?** Daftar/login di **https://cosmosin.io**, lalu isi saldo melalui platform tersebut.
+> **Belum punya akun CosmosHub?** Daftar lewat link referral ini: **https://cosmosin.io/r/34D5W2DC**, lalu isi saldo melalui platform tersebut.
 
 Repo ini juga berisi **router fallback opsional** (khusus Windows). Router ini otomatis pindah ke model lain saat sebuah model sedang maintenance, dan pindah ke subscription saat saldo habis. Lihat [bagian 7](#7-opsional-router-fallback-otomatis-windows).
 
@@ -264,7 +264,7 @@ curl -s https://api.cosmosin.io/v1/models -H "Authorization: Bearer $COSMOSHUB_A
 - **Jangan bagikan API key** di chat, screenshot, atau repository Git. File `settings.json` Claude Code berisi key, jadi jangan di-commit.
 - Kalau key terlanjur bocor, **buat key baru** di dashboard CosmosHub dan hapus key yang lama.
 - Dukungan resmi: hubungi admin CosmosHub lewat Telegram (tautan ada di dashboard).
-- Isi saldo atau daftar akun baru: **https://cosmosin.io**.
+- Daftar akun baru (link referral): **https://cosmosin.io/r/34D5W2DC**. Isi saldo: **https://cosmosin.io**.
 
 ---
 
